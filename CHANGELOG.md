@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 ### Added
-- Added configuration/setup files: `README.md`; `CHANGELOG.md`.
+- Added configuration/setup files: `README.md`; `CHANGELOG.md`; `package.json`; `.editorconfig`.
+- Added `index.js` file (eg. application entry point).
 
 ### Changed
 - ...
