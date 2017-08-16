@@ -7,7 +7,7 @@ const http = require( 'http' );
 // --------------------------------------------------
 // DECLARE VARS
 // --------------------------------------------------
-const PORT = 8080;
+const PORT = process.env.port || 8080;
 
 const unsupportedRoutes = [ '/favicon.ico', '/robots.txt' ]; /// TEMP
 
