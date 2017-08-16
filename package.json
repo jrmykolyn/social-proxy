@@ -1,0 +1,19 @@
+{
+  "name": "social-proxy",
+  "version": "0.0.0",
+  "description": "Social Proxy allows for 'read only' access to user's data streams on a variety of social media platforms.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrmykolyn/social-proxy.git"
+  },
+  "author": "Jesse R Mykolyn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jrmykolyn/social-proxy/issues"
+  },
+  "homepage": "https://github.com/jrmykolyn/social-proxy#readme"
+}
