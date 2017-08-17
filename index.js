@@ -20,8 +20,12 @@ const unsupportedRoutes = [ '/favicon.ico', '/robots.txt' ]; /// TEMP
 
 const Client = pg.Client;
 
-var dbConfig = {
-	database: ( ENV === 'development' ) ? 'social_proxy' : 'd3oi6sirqo59c0',
+var dbConfig = {};
+
+if ( ENV === 'production' ) {
+	dbConfig.connectionString = process.ENV.DATABASE_URL;
+} else {
+	dbConfig.database = 'social_proxy';
 }
 
 var db;
