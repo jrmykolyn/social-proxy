@@ -17,8 +17,6 @@ const ENV = process.env.NODE_ENV || 'development';
 
 const PORT = process.env.PORT || 8080;
 
-const unsupportedRoutes = [ '/favicon.ico', '/robots.txt' ]; /// TEMP
-
 const Client = pg.Client;
 
 var dbConfig = {};
@@ -165,7 +163,7 @@ app.get( '/', function( req, res ) {
 } );
 
 app.get( '/instagram', function( req, res ) {
-	console.log( 'REQUEST FAILED' );
+	res.end( '/// TODO' );
 } );
 
 app.get( '/instagram/:username', function( req, res ) {
