@@ -12,11 +12,17 @@ const Promise = require( 'bluebird' );
 // --------------------------------------------------
 // DECLARE VARS
 // --------------------------------------------------
+const ENV = process.env.NODE_ENV || 'development';
+
 const PORT = process.env.PORT || 8080;
 
 const unsupportedRoutes = [ '/favicon.ico', '/robots.txt' ]; /// TEMP
 
 const Client = pg.Client;
+
+var dbConfig = {
+	database: ( ENV === 'development' ) ? 'social_proxy' : 'd3oi6sirqo59c0',
+}
 
 var db;
 
@@ -33,9 +39,7 @@ function parseRoute( route ) {
 
 function dbConnect() {
 	return new Promise( ( resolve, reject ) => {
-		db = new Client( {
-			database: 'social_proxy',
-		} );
+		db = new Client( dbConfig );
 
 		resolve( db );
 	} );
@@ -126,4 +130,5 @@ function fetchInstagramData( accessToken ) {
 		}
 	} ).listen( PORT, () => {
 		console.log( `LISTENING ON PORT: ${PORT}` );
+		console.log( `APP IS CURRENTLY RUNNING IN THE FOLLOWING MODE: ${ENV}` );
 	} )
