@@ -23,7 +23,7 @@ const Client = pg.Client;
 var dbConfig = {};
 
 if ( ENV === 'production' ) {
-	dbConfig.connectionString = process.ENV.DATABASE_URL;
+	dbConfig.connectionString = process.env.DATABASE_URL;
 } else {
 	dbConfig.database = 'social_proxy';
 }
