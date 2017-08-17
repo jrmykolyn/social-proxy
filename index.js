@@ -5,6 +5,7 @@
 const http = require( 'http' );
 
 // Vendor
+const express = require( 'express' );
 const curl = require( 'curl' );
 const pg = require( 'pg' );
 const Promise = require( 'bluebird' );
@@ -27,6 +28,8 @@ if ( ENV === 'production' ) {
 } else {
 	dbConfig.database = 'social_proxy';
 }
+
+var app = express();
 
 var db;
 
@@ -88,51 +91,97 @@ function fetchInstagramData( accessToken ) {
 				}
 
 				resolve( body );
-			} );
 		} );
+	} );
+}
+
+function fetchInstagramFeed( username ) {
+	return new Promise( ( resolve, reject ) => {
+		dbConnect()
+			.then( ( routeBits ) => {
+				if ( username ) {
+					return getAccessToken( 'instagram', username );
+				} else {
+					throw new Error( 'Whoops, didn\'t receive a userbame,' );
+				}
+			} )
+			.then( ( data ) => {
+				provider = ( data && data.provider && typeof data.provider === 'string' ) ? data.provider.toLowerCase() : null;
+
+				switch ( provider ) {
+					case 'instagram':
+						return fetchInstagramData( data.access_token );
+					default:
+						throw new Error( 'Failed to match provider.' );
+				}
+			} )
+			.then( ( data ) => {
+				resolve( data );
+			} )
+			.catch( ( err ) => {
+				reject( err instanceof Error ? err.message : err );
+			} );
+	} );
+}
+
+function getError( opts ) {
+	opts = ( opts && typeof opts === 'object' ) ? opts : {};
+
+	opts.message = getErrorMessage( opts.type, opts.subtype );
+
+	return decorateError( opts );
+}
+
+function getErrorMessage( type, subtype ) {
+	switch ( type ) {
+		case 'bad request':
+			switch ( subtype ) {
+				default:
+					return 'The requested resource is missing, invalid, or has been removed.';
+			}
+			break;
+		default:
+			return 'Whoops, something went wrong!';
 	}
+};
 
-	// --------------------------------------------------
-	// INIT
-	// --------------------------------------------------
-	http.createServer( ( req, res ) => {
-		// ...
-		res.setHeader( 'Access-Control-Allow-Origin', '*' );
+function decorateError( opts ) {
+	return {
+		error: true,
+		statusCode: opts.statusCode || 500,
+		errorType: opts.type || null,
+		errorSubtype: opts.subtype || null,
+		errorMessage: opts.message || 'Whoops, something went wrong.',
+	};
+}
 
-		if ( unsupportedRoutes.includes( req.url ) ) {
-			res.end();
-		} else {
-			dbConnect()
-				.then( () => {
-					return parseRoute( req.url );
-				} )
-				.then( ( routeBits ) => {
-					let [ provider, username ] = routeBits;
+// --------------------------------------------------
+// ROUTES
+// --------------------------------------------------
+app.use( express.static( 'public' ) );
 
-					if ( provider && username ) {
-						return getAccessToken( provider, username );
-					} else {
-						throw new Error( 'Did not receive either: provider; username' );
-					}
-				} )
-				.then( ( data ) => {
-					provider = ( data && data.provider && typeof data.provider === 'string' ) ? data.provider.toLowerCase() : null;
+app.get( '/', function( req, res ) {
+	res.end( '/// TODO' );
+} );
 
-					switch ( provider ) {
-						case 'instagram':
-							return fetchInstagramData( data.access_token );
-						default:
-							throw new Error( 'Failed to match provider.' );
-					}
-				} )
-				.then( ( data ) => {
-					res.end( data );
-				} )
-				.catch( ( err ) => {
-					res.end( err instanceof Error ? err.message : err );
-				} );
-		}
-	} ).listen( PORT, () => {
+app.get( '/instagram', function( req, res ) {
+	console.log( 'REQUEST FAILED' );
+} );
+
+app.get( '/instagram/:username', function( req, res ) {
+	res.setHeader( 'Access-Control-Allow-Origin', '*' );
+
+	fetchInstagramFeed( req.params.username )
+		.then( ( data ) => {
+			res.end( data );
+		} )
+		.catch( ( err ) => {
+			res.status( 400 ).json( getError( { type: 'bad request', statusCode: 400 } ) );
+		} );
+} );
+
+
+app.listen( PORT, function() {
 		console.log( `LISTENING ON PORT: ${PORT}` );
 		console.log( `APP IS CURRENTLY RUNNING IN THE FOLLOWING MODE: ${ENV}` );
-	} )
+}  );
