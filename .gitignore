@@ -1,6 +1,9 @@
 # OS
 .DS_Store
 
+# Project
+dist/
+
 # Styles
 .sass-cache/
 
