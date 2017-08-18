@@ -154,12 +154,20 @@ function decorateError( opts ) {
 }
 
 // --------------------------------------------------
+// SETUP
+// --------------------------------------------------
+app.set( 'views', './dist/views' );
+app.set( 'view engine', 'ejs' );
+app.engine( 'html', require( 'ejs' ).renderFile );
+app.use( express.static( './dist/public' ) );
+
+// --------------------------------------------------
 // ROUTES
 // --------------------------------------------------
-app.use( express.static( 'public' ) );
+
 
 app.get( '/', function( req, res ) {
-	res.end( '/// TODO' );
+	res.render( 'index' );
 } );
 
 app.get( '/instagram', function( req, res ) {
