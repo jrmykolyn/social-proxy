@@ -92,7 +92,7 @@ function fetchInstagramFeed( username ) {
 				if ( username ) {
 					return getAccessToken( 'instagram', username );
 				} else {
-					throw new Error( 'Whoops, didn\'t receive a userbame,' );
+					throw new Error( 'Whoops, didn\'t receive a username,' );
 				}
 			} )
 			.then( ( data ) => {
