@@ -29,20 +29,18 @@ if ( ENV === 'production' ) {
 
 var app = express();
 
-var db;
-
 // --------------------------------------------------
 // DECLARE FUNCTIONS
 // --------------------------------------------------
-function dbConnect() {
+function dbInit() {
 	return new Promise( ( resolve, reject ) => {
-		db = new Client( dbConfig );
+		var db = new Client( dbConfig );
 
 		resolve( db );
 	} );
 }
 
-function getAccessToken( provider, username ) {
+function getAccessToken( db, provider, username ) {
 	return new Promise( ( resolve, reject ) => {
 		db.connect()
 			.then( () => {
@@ -103,10 +101,10 @@ function fetchInstagramData( accessToken ) {
 
 function fetchInstagramFeed( username ) {
 	return new Promise( ( resolve, reject ) => {
-		dbConnect()
-			.then( () => {
+		dbInit()
+			.then( ( db ) => {
 				if ( username ) {
-					return getAccessToken( 'instagram', username );
+					return getAccessToken( db, 'instagram', username );
 				} else {
 					throw new Error( 'Whoops, didn\'t receive a username,' );
 				}
