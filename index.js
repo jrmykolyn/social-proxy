@@ -44,22 +44,38 @@ function dbConnect() {
 
 function getAccessToken( provider, username ) {
 	return new Promise( ( resolve, reject ) => {
-		db.connect();
+		db.connect()
+			.then( () => {
+				console.log( '[LOG] - Successfully connected to database' );
 
-		db.query( `SELECT * FROM access_tokens WHERE username = '${username}' AND provider = '${provider}'`, ( err, result ) => {
-			if ( err ) {
-				console.log( 'ENCOUNTERED ERROR' ); /// TEMP
-				console.log( err );
-			}
+				db.query( `SELECT * FROM access_tokens WHERE username = '${username}' AND provider = '${provider}'`, ( err, result ) => {
+					if ( err ) {
+						console.log( '[ERROR] - Encountered the following error:' );
+						console.log( err );
+					}
 
-			db.end();
+					db.end()
+						.then( () => {
+							console.log( '[LOG] - Successfully disconnected from database' );
 
-			if ( !err && result && result.rows && result.rows.length ) {
-				resolve( result.rows[ 0 ] );
-			} else {
-				reject( err || `No matches found for the following provider and username: ${provider}; ${username}` );
-			}
-		} );
+							if ( !err && result && result.rows && result.rows.length ) {
+								console.log( `[LOG] - Successfully extracted data for the following provider and username: ${provider}; ${username}` );
+								resolve( result.rows[ 0 ] );
+							} else {
+								console.log( `[WARN] - No matches found for the following provider and username: ${provider}; ${username}` );
+								reject( err || `No matches found for the following provider and username: ${provider}; ${username}` );
+							}
+						} )
+						.catch( ( disconnectErr ) => {
+							console.log( '[ERROR] - Failed to disconnect from database.' );
+							reject( disconnectErr );
+						} )
+				} );
+			} )
+			.catch( ( err ) => {
+				console.log( '[ERROR] - Failed to connect to database.' );
+				reject( err );
+			} );
 	} );
 }
 
@@ -174,6 +190,7 @@ app.get( '/instagram/:username', function( req, res ) {
 			res.end( data );
 		} )
 		.catch( ( err ) => {
+			console.log( `[ERROR] - ${err}` );
 			res.status( 400 ).json( getError( { type: 'bad request', statusCode: 400 } ) );
 		} );
 } );
