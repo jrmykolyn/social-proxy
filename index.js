@@ -34,14 +34,6 @@ var db;
 // --------------------------------------------------
 // DECLARE FUNCTIONS
 // --------------------------------------------------
-function parseRoute( route ) {
-	return new Promise( ( resolve, reject ) => {
-		let routeBits = route.split( '/' ).filter( ( bit ) => { return bit !== '' } );
-
-		resolve( routeBits );
-	} );
-}
-
 function dbConnect() {
 	return new Promise( ( resolve, reject ) => {
 		db = new Client( dbConfig );
@@ -96,7 +88,7 @@ function fetchInstagramData( accessToken ) {
 function fetchInstagramFeed( username ) {
 	return new Promise( ( resolve, reject ) => {
 		dbConnect()
-			.then( ( routeBits ) => {
+			.then( () => {
 				if ( username ) {
 					return getAccessToken( 'instagram', username );
 				} else {
