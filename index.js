@@ -3,6 +3,7 @@
 // --------------------------------------------------
 // Node
 const http = require( 'http' );
+const crypto = require( 'crypto' );
 
 // Vendor
 const express = require( 'express' );
@@ -13,12 +14,18 @@ const Promise = require( 'bluebird' );
 // --------------------------------------------------
 // DECLARE VARS
 // --------------------------------------------------
-const ENV = process.env.NODE_ENV || 'development';
+// Classes/Instances
+const Client = pg.Client;
+var hash = crypto.createHash( 'sha256' );
 
+// Environment
+const ENV = process.env.NODE_ENV || 'development';
 const PORT = process.env.PORT || 8080;
 
-const Client = pg.Client;
+// Session
+var sessionIdentifier = getSessionIdentifier();
 
+// Database
 var dbConfig = {};
 
 if ( ENV === 'production' ) {
@@ -27,11 +34,18 @@ if ( ENV === 'production' ) {
 	dbConfig.database = 'social_proxy';
 }
 
+// App
 var app = express();
 
 // --------------------------------------------------
 // DECLARE FUNCTIONS
 // --------------------------------------------------
+function getSessionIdentifier() {
+	hash.update( new Date().getTime().toString() );
+
+	return hash.digest( 'hex' ).substring( 0, 10 );
+}
+
 function dbInit() {
 	return new Promise( ( resolve, reject ) => {
 		var db = new Client( dbConfig );
@@ -44,7 +58,7 @@ function getAccessToken( db, provider, username ) {
 	return new Promise( ( resolve, reject ) => {
 		db.connect()
 			.then( () => {
-				console.log( '[LOG] - Successfully connected to database' );
+				console.log( `[${sessionIdentifier}][LOG] - Successfully connected to database` );
 
 				db.query( `SELECT * FROM access_tokens WHERE username = '${username}' AND provider = '${provider}'`, ( err, result ) => {
 					if ( err ) {
@@ -54,24 +68,24 @@ function getAccessToken( db, provider, username ) {
 
 					db.end()
 						.then( () => {
-							console.log( '[LOG] - Successfully disconnected from database' );
+							console.log( `[${sessionIdentifier}][LOG] - Successfully disconnected from database` );
 
 							if ( !err && result && result.rows && result.rows.length ) {
-								console.log( `[LOG] - Successfully extracted data for the following provider and username: ${provider}; ${username}` );
+								console.log( `[${sessionIdentifier}][LOG] - Successfully extracted data for the following provider and username: ${provider}; ${username}` );
 								resolve( result.rows[ 0 ] );
 							} else {
-								console.log( `[WARN] - No matches found for the following provider and username: ${provider}; ${username}` );
+								console.log( `[${sessionIdentifier}][WARN] - No matches found for the following provider and username: ${provider}; ${username}` );
 								reject( err || `No matches found for the following provider and username: ${provider}; ${username}` );
 							}
 						} )
 						.catch( ( disconnectErr ) => {
-							console.log( '[ERROR] - Failed to disconnect from database.' );
+							console.log( `[${sessionIdentifier}][ERROR] - Failed to disconnect from database.` );
 							reject( disconnectErr );
 						} )
 				} );
 			} )
 			.catch( ( err ) => {
-				console.log( '[ERROR] - Failed to connect to database.' );
+				console.log( `[${sessionIdentifier}][ERROR] - Failed to connect to database.` );
 				reject( err );
 			} );
 	} );
@@ -188,13 +202,13 @@ app.get( '/instagram/:username', function( req, res ) {
 			res.end( data );
 		} )
 		.catch( ( err ) => {
-			console.log( `[ERROR] - ${err}` );
+			console.log( `[${sessionIdentifier}][ERROR] - ${err}` );
 			res.status( 400 ).json( getError( { type: 'bad request', statusCode: 400 } ) );
 		} );
 } );
 
 
 app.listen( PORT, function() {
-		console.log( `LISTENING ON PORT: ${PORT}` );
-		console.log( `APP IS CURRENTLY RUNNING IN THE FOLLOWING MODE: ${ENV}` );
+		console.log( `[APP] - LISTENING ON PORT: ${PORT}` );
+		console.log( `[APP] - RUNNING IN THE FOLLOWING MODE: ${ENV}` );
 }  );
