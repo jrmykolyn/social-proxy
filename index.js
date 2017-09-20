@@ -136,8 +136,8 @@ function fetchInstagramPostBatch( url, count, data, onComplete, onError ) {
 			// Parse response
 			var bodyJson = JSON.parse( body );
 
-			// Add accumulated data to response data.
-			bodyJson.data = [ ...bodyJson.data, ...data ];
+			// Prepend accumulated data to response data.
+			bodyJson.data = [ ...data, ...bodyJson.data, ];
 
 			// If we've hit the desired or max amount of data:
 			// - Invoke the `onComplete` callback with the trimmed, stringified data.
