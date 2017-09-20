@@ -101,23 +101,56 @@ function fetchInstagramData( accessToken, options ) {
 	var queryStr = utils.objToQuery( query );
 
 	return new Promise( ( resolve, reject ) => {
+		var maxCount = 99; /// TODO[@jrmykolyn]: Move to config.
+		var count = null;
+
 		if ( !accessToken ) {
 			reject( 'Missing or invalid access token.' );
 		}
 
-		curl.get(
-			`https://api.instagram.com/v1/users/self/media/recent?access_token=${accessToken}&${queryStr}`,
-			{
-				CURLOPT_RETURNTRANSFER: 1,
-				CURLOPT_FOLLOWLOCATION: true,
-			},
-			function( err, response, body ) {
-				if ( err ) {
-					reject( err );
-				}
+		if ( options && options.query && options.query.count ) {
+			count = ( options.query.count <= maxCount ) ? options.query.count : maxCount;
+		}
 
-				resolve( body );
-		} );
+		var url = `https://api.instagram.com/v1/users/self/media/recent?access_token=${accessToken}&${queryStr}`;
+		var data = [];
+
+		fetchInstagramPostBatch( url, count, data, resolve, reject );
+	} );
+}
+
+/// TODO[@jrmykolyn]: Do *SOMETHING* about the fact that this function takes 5 arguments...
+function fetchInstagramPostBatch( url, count, data, onComplete, onError ) {
+	curl.get(
+		url,
+		{
+			CURLOPT_RETURNTRANSFER: 1,
+			CURLOPT_FOLLOWLOCATION: true,
+		},
+		function( err, response, body ) {
+			if ( err ) {
+				onError( err );
+			}
+
+			// Parse response
+			var bodyJson = JSON.parse( body );
+
+			// Add accumulated data to response data.
+			bodyJson.data = [ ...bodyJson.data, ...data ];
+
+			// If we've hit the desired or max amount of data:
+			// - Invoke the `onComplete` callback with the trimmed, stringified data.
+			// Else
+			// - Go again!
+			if ( bodyJson.data.length >= count ) {
+				bodyJson.data = bodyJson.data.slice( 0, count );
+
+				onComplete( JSON.stringify( bodyJson ) );
+			} else {
+				var newUrl = `${url}&max_id=${bodyJson.pagination.next_max_id}`; /// TODO[@jrmykolyn]: Handle cases where `bodyJson` does not include `pagination` data.
+
+				fetchInstagramPostBatch( newUrl, count, bodyJson.data, onComplete, onError );
+			}
 	} );
 }
 
