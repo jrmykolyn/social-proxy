@@ -102,7 +102,8 @@ function fetchInstagramData( accessToken, options ) {
 
 	return new Promise( ( resolve, reject ) => {
 		var maxCount = 99; /// TODO[@jrmykolyn]: Move to config.
-		var count = null;
+		var minCount = 33; /// TODO[@jrmykolyn]: Move to config.
+		var count = minCount;
 
 		if ( !accessToken ) {
 			reject( 'Missing or invalid access token.' );
