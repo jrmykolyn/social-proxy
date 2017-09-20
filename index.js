@@ -11,6 +11,9 @@ const curl = require( 'curl' );
 const pg = require( 'pg' );
 const Promise = require( 'bluebird' );
 
+// Project
+const { utils } = require( './lib' );
+
 // --------------------------------------------------
 // DECLARE VARS
 // --------------------------------------------------
@@ -91,14 +94,19 @@ function getAccessToken( db, provider, username ) {
 	} );
 }
 
-function fetchInstagramData( accessToken ) {
+function fetchInstagramData( accessToken, options ) {
+	options = ( options && typeof options === 'object' ) ? options : {};
+
+	var query = ( options.query && typeof options.query === 'object' ) ? options.query : {};
+	var queryStr = utils.objToQuery( query );
+
 	return new Promise( ( resolve, reject ) => {
 		if ( !accessToken ) {
 			reject( 'Missing or invalid access token.' );
 		}
 
 		curl.get(
-			`https://api.instagram.com/v1/users/self/media/recent?access_token=${accessToken}`,
+			`https://api.instagram.com/v1/users/self/media/recent?access_token=${accessToken}&${queryStr}`,
 			{
 				CURLOPT_RETURNTRANSFER: 1,
 				CURLOPT_FOLLOWLOCATION: true,
@@ -113,7 +121,7 @@ function fetchInstagramData( accessToken ) {
 	} );
 }
 
-function fetchInstagramFeed( username ) {
+function fetchInstagramFeed( username, options ) {
 	return new Promise( ( resolve, reject ) => {
 		dbInit()
 			.then( ( db ) => {
@@ -128,7 +136,7 @@ function fetchInstagramFeed( username ) {
 
 				switch ( provider ) {
 					case 'instagram':
-						return fetchInstagramData( data.access_token );
+						return fetchInstagramData( data.access_token, options );
 					default:
 						throw new Error( 'Failed to match provider.' );
 				}
@@ -197,7 +205,12 @@ app.get( '/instagram', function( req, res ) {
 app.get( '/instagram/:username', function( req, res ) {
 	res.setHeader( 'Access-Control-Allow-Origin', '*' );
 
-	fetchInstagramFeed( req.params.username )
+	// Extract `options` (ie. params) from request or fall back to empty object.
+	var options = {
+		query: ( req.query && typeof req.query === 'object' ) ? req.query : {},
+	};
+
+	fetchInstagramFeed( req.params.username, options )
 		.then( ( data ) => {
 			res.end( data );
 		} )
