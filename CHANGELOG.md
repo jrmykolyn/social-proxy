@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Completed first pass of data fetching logic (Instagram only).
 - Completed first pass of error/invalid request handling/logging.
 - Added `src/` and `dist/` directories.
-- Complete first pass of `gulpfile.js`.
+- Completed first pass of `gulpfile.js`.
 
 ### Changed
-- ...
+- Updated (Instagram) data fetching logic to correctly handle expired access tokens.
