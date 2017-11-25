@@ -131,10 +131,17 @@ function fetchInstagramPostBatch( url, count, data, onComplete, onError ) {
 		function( err, response, body ) {
 			if ( err ) {
 				onError( err );
+				return;
 			}
 
 			// Parse response
 			var bodyJson = JSON.parse( body );
+
+			// Trigger error handling if response does not include `data` key.
+			if ( !bodyJson.data || typeof bodyJson.data !== 'object' ) {
+				onError( bodyJson.meta );
+				return;
+			}
 
 			// Prepend accumulated data to response data.
 			bodyJson.data = [ ...data, ...bodyJson.data, ];
@@ -179,7 +186,7 @@ function fetchInstagramFeed( username, options ) {
 				resolve( data );
 			} )
 			.catch( ( err ) => {
-				reject( err instanceof Error ? err.message : err );
+				reject( err );
 			} );
 	} );
 }
@@ -187,31 +194,16 @@ function fetchInstagramFeed( username, options ) {
 function getError( opts ) {
 	opts = ( opts && typeof opts === 'object' ) ? opts : {};
 
-	opts.message = getErrorMessage( opts.type, opts.subtype );
-
 	return decorateError( opts );
 }
-
-function getErrorMessage( type, subtype ) {
-	switch ( type ) {
-		case 'bad request':
-			switch ( subtype ) {
-				default:
-					return 'The requested resource is missing, invalid, or has been removed.';
-			}
-			break;
-		default:
-			return 'Whoops, something went wrong!';
-	}
-};
 
 function decorateError( opts ) {
 	return {
 		error: true,
-		statusCode: opts.statusCode || 500,
-		errorType: opts.type || null,
+		statusCode: opts.statusCode || opts.code || null,
+		errorType: opts.type || opts.error_type || null,
 		errorSubtype: opts.subtype || null,
-		errorMessage: opts.message || 'Whoops, something went wrong.',
+		errorMessage: opts.message || opts.error_message || 'Whoops, something went wrong.',
 	};
 }
 
@@ -249,8 +241,8 @@ app.get( '/instagram/:username', function( req, res ) {
 			res.end( data );
 		} )
 		.catch( ( err ) => {
-			console.log( `[${sessionIdentifier}][ERROR] - ${err}` );
-			res.status( 400 ).json( getError( { type: 'bad request', statusCode: 400 } ) );
+			console.log( `[${sessionIdentifier}][ERROR]` ); /// TODO: Ensure that this logs meaningful info.
+			res.status( 400 ).json( getError( err ) );
 		} );
 } );
 
