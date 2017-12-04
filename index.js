@@ -94,6 +94,44 @@ function getAccessToken( db, provider, username ) {
 	} );
 }
 
+/// TODO: Consolidate with `getAccessToken()`.
+function getHandle( db, provider, handle ) {
+	return new Promise( ( resolve, reject ) => {
+		db.connect()
+			.then( () => {
+				console.log( `[${sessionIdentifier}][LOG] - Successfully connected to database` );
+
+				db.query( `SELECT * FROM webhooks WHERE handle = '${handle}' AND provider = '${provider}'`, ( err, result ) => {
+					if ( err ) {
+						console.log( '[ERROR] - Encountered the following error:' );
+						console.log( err );
+					}
+
+					db.end()
+						.then( () => {
+							console.log( `[${sessionIdentifier}][LOG] - Successfully disconnected from database` );
+
+							if ( !err && result && result.rows && result.rows.length ) {
+								console.log( `[${sessionIdentifier}][LOG] - Successfully extracted data for the following provider and handle: ${provider}; ${handle}` );
+								resolve( result.rows[ 0 ] );
+							} else {
+								console.log( `[${sessionIdentifier}][WARN] - No matches found for the following provider and handle: ${provider}; ${handle}` );
+								reject( err || `No matches found for the following provider and handle: ${provider}; ${handle}` );
+							}
+						} )
+						.catch( ( disconnectErr ) => {
+							console.log( `[${sessionIdentifier}][ERROR] - Failed to disconnect from database.` );
+							reject( disconnectErr );
+						} )
+				} );
+			} )
+			.catch( ( err ) => {
+				console.log( `[${sessionIdentifier}][ERROR] - Failed to connect to database.` );
+				reject( err );
+			} );
+	} );
+}
+
 function fetchInstagramData( accessToken, options ) {
 	options = ( options && typeof options === 'object' ) ? options : {};
 
@@ -207,6 +245,48 @@ function decorateError( opts ) {
 	};
 }
 
+function initSlack( handle, opts ) {
+	return new Promise( function( resolve, reject ) {
+		dbInit()
+			.then( ( db ) => {
+				if ( handle ) {
+					return getHandle( db, 'slack', handle );
+				} else {
+					throw new Error( 'Whoops, didn\'t receive a handle,' );
+				}
+			} )
+			.then( ( data ) => {
+				return postSlackData( data.webhook, {
+					username: 'Social Proxy', /// TODO: Move to config.
+					text: opts.query.text || '',
+				} );
+			} )
+			.then( ( data ) => {
+				resolve( data );
+			} )
+			.catch( ( err ) => {
+				reject( err );
+			} );
+	} );
+}
+
+function postSlackData( url, opts ) {
+	return new Promise( function( resolve, reject ) {
+		curl.postJSON(
+			url,
+			opts,
+			{},
+			function( err, response, data ) {
+				if ( err ) {
+					reject( err );
+				}
+
+				resolve( data ); /// TEMP /// TODO
+			}
+		);
+	} );
+}
+
 // --------------------------------------------------
 // SETUP
 // --------------------------------------------------
@@ -218,8 +298,6 @@ app.use( express.static( './dist/public' ) );
 // --------------------------------------------------
 // ROUTES
 // --------------------------------------------------
-
-
 app.get( '/', function( req, res ) {
 	res.render( 'index' );
 } );
@@ -246,6 +324,25 @@ app.get( '/instagram/:username', function( req, res ) {
 		} );
 } );
 
+app.get( '/slack', function( req, res ) {
+	res.end( '/// TODO' );
+} );
+
+/// TODO: Listen for POST request.
+app.get( '/slack/:handle', function( req, res ) {
+	// Extract `options` (ie. params) from request or fall back to empty object.
+	var options = {
+		query: ( req.query && typeof req.query === 'object' ) ? req.query : {},
+	};
+
+	initSlack( req.params.handle, options )
+		.then( ( data ) => {
+			res.end( data );
+		} )
+		.catch( ( err ) => {
+			res.status( 400 ).json( getError( err ) );
+		} );
+} );
 
 app.listen( PORT, function() {
 		console.log( `[APP] - LISTENING ON PORT: ${PORT}` );
