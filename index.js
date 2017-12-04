@@ -328,8 +328,15 @@ app.get( '/slack', function( req, res ) {
 	res.end( '/// TODO' );
 } );
 
-/// TODO: Listen for POST request.
+/// TODO
 app.get( '/slack/:handle', function( req, res ) {
+	res.status( 400 )
+		.json( getError( {
+			message: 'Endpoint expected POST request.', /// TEMP
+		} ) );
+} );
+
+app.post( '/slack/:handle', function( req, res ) {
 	// Extract `options` (ie. params) from request or fall back to empty object.
 	var options = {
 		query: ( req.query && typeof req.query === 'object' ) ? req.query : {},
