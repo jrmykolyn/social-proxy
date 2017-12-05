@@ -22,7 +22,9 @@
     "curl": "^0.1.4",
     "ejs": "^2.5.7",
     "express": "^4.15.4",
-    "pg": "^7.1.2"
+    "pg": "^6.4.2",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^4.26.0"
   },
   "devDependencies": {
     "gulp": "^3.9.1",
