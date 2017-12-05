@@ -10,6 +10,7 @@ const express = require( 'express' );
 const curl = require( 'curl' );
 const pg = require( 'pg' );
 const Promise = require( 'bluebird' );
+const Sequelize = require( 'sequelize' );
 
 // Project
 const { utils } = require( './lib' );
@@ -29,7 +30,15 @@ const PORT = process.env.PORT || 8080;
 var sessionIdentifier = getSessionIdentifier();
 
 // Database
-var dbConfig = {};
+/// TODO: Consolidate with `dbConfig`.
+const sequelize = new Sequelize( 'social_proxy', '', '', {
+	dialect: 'postgres',
+	define: {
+		timestamps: false,
+	},
+} );
+
+const dbConfig = {};
 
 if ( ENV === 'production' ) {
 	dbConfig.connectionString = process.env.DATABASE_URL;
@@ -39,6 +48,32 @@ if ( ENV === 'production' ) {
 
 // App
 var app = express();
+
+/// TODO: Move model definitions to more appropriate location.
+const Webhook = sequelize.define( 'webhook', {
+	webhook: {
+		type: Sequelize.TEXT,
+	},
+	provider: {
+		type: Sequelize.TEXT,
+	},
+	handle: {
+		type: Sequelize.TEXT,
+	},
+} );
+
+const AccessToken = sequelize.define( 'access_token', {
+	access_token: {
+		type: Sequelize.TEXT,
+	},
+	provider: {
+		type: Sequelize.TEXT,
+	},
+	username: {
+		type: Sequelize.TEXT,
+	},
+} );
+
 
 // --------------------------------------------------
 // DECLARE FUNCTIONS
@@ -50,90 +85,7 @@ function getSessionIdentifier() {
 }
 
 function dbInit() {
-	return new Promise( ( resolve, reject ) => {
-		var db = new Client( dbConfig );
-
-		resolve( db );
-	} );
-}
-
-function getAccessToken( db, provider, username ) {
-	return new Promise( ( resolve, reject ) => {
-		db.connect( ( err ) => {
-			if ( err ) {
-				console.log( `[${sessionIdentifier}][ERROR] - Failed to connect to database.` );
-				reject( err );
-				return;
-			}
-
-			console.log( `[${sessionIdentifier}][LOG] - Successfully connected to database` );
-
-			db.query( `SELECT * FROM access_tokens WHERE username = '${username}' AND provider = '${provider}'`, ( err, result ) => {
-				if ( err ) {
-					console.log( '[ERROR] - Encountered the following error:' );
-					console.log( err );
-				}
-
-				db.end( ( err ) => {
-					if ( err ) {
-						console.log( `[${sessionIdentifier}][ERROR] - Failed to disconnect from database.` );
-						reject( disconnectErr );
-						return;
-					}
-
-					console.log( `[${sessionIdentifier}][LOG] - Successfully disconnected from database` );
-
-					if ( !err && result && result.rows && result.rows.length ) {
-						console.log( `[${sessionIdentifier}][LOG] - Successfully extracted data for the following provider and username: ${provider}; ${username}` );
-						resolve( result.rows[ 0 ] );
-					} else {
-						console.log( `[${sessionIdentifier}][WARN] - No matches found for the following provider and username: ${provider}; ${username}` );
-						reject( err || `No matches found for the following provider and username: ${provider}; ${username}` );
-					}
-				} );
-			} );
-		} );
-	} );
-}
-
-/// TODO: Consolidate with `getAccessToken()`.
-function getHandle( db, provider, handle ) {
-	return new Promise( ( resolve, reject ) => {
-		db.connect( ( err ) => {
-			if ( err ) {
-				console.log( `[${sessionIdentifier}][ERROR] - Failed to connect to database.` );
-				reject( err );
-				return;
-			}
-
-			console.log( `[${sessionIdentifier}][LOG] - Successfully connected to database` );
-
-			db.query( `SELECT * FROM webhooks WHERE handle = '${handle}' AND provider = '${provider}'`, ( err, result ) => {
-				if ( err ) {
-					console.log( '[ERROR] - Encountered the following error:' );
-					console.log( err );
-				}
-
-				db.end( ( err ) => {
-					if ( err ) {
-						console.log( `[${sessionIdentifier}][ERROR] - Failed to disconnect from database.` );
-						reject( disconnectErr );
-						return;
-					}
-
-					console.log( `[${sessionIdentifier}][LOG] - Successfully disconnected from database` );
-
-					if ( !err && result && result.rows && result.rows.length ) {
-						console.log( `[${sessionIdentifier}][LOG] - Successfully extracted data for the following provider and handle: ${provider}; ${handle}` );
-						resolve( result.rows[ 0 ] );
-					} else {
-						console.log( `[${sessionIdentifier}][WARN] - No matches found for the following provider and handle: ${provider}; ${handle}` );
-						reject( err || `No matches found for the following provider and handle: ${provider}; ${handle}` );
-					}
-				} );
-			} );
-		} );
-	} );
+	return sequelize.authenticate()
 }
 
 function fetchInstagramData( accessToken, options ) {
@@ -201,21 +153,20 @@ function fetchInstagramPostBatch( url, count, data, onComplete, onError ) {
 
 				fetchInstagramPostBatch( newUrl, count, bodyJson.data, onComplete, onError );
 			}
-	} );
+		} );
 }
 
 function fetchInstagramFeed( username, options ) {
 	return new Promise( ( resolve, reject ) => {
-
 		dbInit()
-			.then( ( db ) => {
+			.then( () => {
 				if ( username ) {
-					return getAccessToken( db, 'instagram', username );
+					return AccessToken.findAll( { where: { username }, limit: 1 } );
 				} else {
 					throw new Error( 'Whoops, didn\'t receive a username,' );
 				}
 			} )
-			.then( ( data ) => {
+			.then( ( [ data ] ) => {
 				provider = ( data && data.provider && typeof data.provider === 'string' ) ? data.provider.toLowerCase() : null;
 
 				switch ( provider ) {
@@ -253,14 +204,14 @@ function decorateError( opts ) {
 function initSlack( handle, opts ) {
 	return new Promise( function( resolve, reject ) {
 		dbInit()
-			.then( ( db ) => {
+			.then( () => {
 				if ( handle ) {
-					return getHandle( db, 'slack', handle );
+					return Webhook.findAll( { where: { handle }, limit: 1 } );
 				} else {
 					throw new Error( 'Whoops, didn\'t receive a handle,' );
 				}
 			} )
-			.then( ( data ) => {
+			.then( ( [ data ] ) => {
 				return postSlackData( data.webhook, {
 					username: 'Social Proxy', /// TODO: Move to config.
 					text: opts.query.text || '',
@@ -336,9 +287,9 @@ app.get( '/slack', function( req, res ) {
 /// TODO
 app.get( '/slack/:handle', function( req, res ) {
 	res.status( 400 )
-		.json( getError( {
-			message: 'Endpoint expected POST request.', /// TEMP
-		} ) );
+	.json( getError( {
+		message: 'Endpoint expected POST request.', /// TEMP
+	} ) );
 } );
 
 app.post( '/slack/:handle', function( req, res ) {
@@ -348,15 +299,15 @@ app.post( '/slack/:handle', function( req, res ) {
 	};
 
 	initSlack( req.params.handle, options )
-		.then( ( data ) => {
-			res.end( data );
-		} )
-		.catch( ( err ) => {
-			res.status( 400 ).json( getError( err ) );
-		} );
+	.then( ( data ) => {
+		res.end( data );
+	} )
+	.catch( ( err ) => {
+		res.status( 400 ).json( getError( err ) );
+	} );
 } );
 
 app.listen( PORT, function() {
-		console.log( `[APP] - LISTENING ON PORT: ${PORT}` );
-		console.log( `[APP] - RUNNING IN THE FOLLOWING MODE: ${ENV}` );
-}  );
+	console.log( `[APP] - LISTENING ON PORT: ${PORT}` );
+	console.log( `[APP] - RUNNING IN THE FOLLOWING MODE: ${ENV}` );
+} );
