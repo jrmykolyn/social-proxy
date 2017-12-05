@@ -5,6 +5,7 @@
 - [Installation](#installation)
 - [Setup](#setup)
 - [Usage](#usage)
+- [Endpoints](#endpoints)
 - [Documentation](#documentation)
 
 ## About
@@ -18,6 +19,27 @@ Social Proxy allows for 'read only' access to user's data streams on a variety o
 
 ## Usage
 /// TODO
+
+## Endpoints
+
+### Overview
+Include below is a list of all endpoint supported by the Social Proxy service.
+
+### List
+
+#### /instagram
+
+| Request Type | Route | Description |
+| --- | --- | --- |
+| GET | /instagram | n/a |
+| POST | /instagram/`:username` | Fetch data from Instagram account registered to `:handle` |
+
+#### /slack
+
+| Request Type | Route | Description |
+| --- | --- | --- |
+| GET | /slack | n/a |
+| POST | /slack/`:handle` | Send message to Slack channel registered to `:handle` |
 
 ## Documentation
 Currently, Social Proxy does not include any external documentation.
