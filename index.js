@@ -30,20 +30,21 @@ const PORT = process.env.PORT || 8080;
 var sessionIdentifier = getSessionIdentifier();
 
 // Database
-/// TODO: Consolidate with `dbConfig`.
-const sequelize = new Sequelize( 'social_proxy', '', '', {
+const dbOpts = {
 	dialect: 'postgres',
 	define: {
 		timestamps: false,
 	},
-} );
+};
 
-const dbConfig = {};
+/// TODO: Replace use of `var` keyword (currently required due to diff. `Sequelize` call signatures).
+var sequelize;
 
 if ( ENV === 'production' ) {
-	dbConfig.connectionString = process.env.DATABASE_URL;
+	sequelize = new Sequelize( process.env.DATABASE_URL, dbOpts );
 } else {
-	dbConfig.database = 'social_proxy';
+	dbOpts.database = 'social_proxy';
+	sequelize = new Sequelize( dbOpts );
 }
 
 // App
