@@ -1,6 +1,6 @@
 {
   "name": "social-proxy",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Social Proxy allows for read and/or write access to user's data streams on a variety of social media platforms.",
   "main": "index.js",
   "scripts": {
