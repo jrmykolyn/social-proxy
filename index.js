@@ -13,7 +13,7 @@ const Promise = require( 'bluebird' );
 const Sequelize = require( 'sequelize' );
 
 // Project
-const { utils } = require( './lib' );
+const { config, utils } = require( './lib' );
 
 // --------------------------------------------------
 // DECLARE VARS
@@ -96,8 +96,8 @@ function fetchInstagramData( accessToken, options ) {
 	var queryStr = utils.objToQuery( query );
 
 	return new Promise( ( resolve, reject ) => {
-		var maxCount = 99; /// TODO[@jrmykolyn]: Move to config.
-		var minCount = 33; /// TODO[@jrmykolyn]: Move to config.
+		var maxCount = config.instagram.maxCount;
+		var minCount = config.instagram.minCount;
 		var count = minCount;
 
 		if ( !accessToken ) {
@@ -214,7 +214,7 @@ function initSlack( handle, opts ) {
 			} )
 			.then( ( [ data ] ) => {
 				return postSlackData( data.webhook, {
-					username: 'Social Proxy', /// TODO: Move to config.
+					username: config.slack.username,
 					text: opts.query.text || '',
 				} );
 			} )
@@ -229,18 +229,13 @@ function initSlack( handle, opts ) {
 
 function postSlackData( url, opts ) {
 	return new Promise( function( resolve, reject ) {
-		curl.postJSON(
-			url,
-			opts,
-			{},
-			function( err, response, data ) {
-				if ( err ) {
-					reject( err );
-				}
-
-				resolve( data ); /// TEMP /// TODO
+		curl.postJSON( url, opts, {}, function( err, response, data ) {
+			if ( err ) {
+				reject( err );
 			}
-		);
+
+			resolve( data ); /// TEMP /// TODO
+		} );
 	} );
 }
 
@@ -287,9 +282,8 @@ app.get( '/slack', function( req, res ) {
 
 /// TODO
 app.get( '/slack/:handle', function( req, res ) {
-	res.status( 400 )
-	.json( getError( {
-		message: 'Endpoint expected POST request.', /// TEMP
+	res.status( 400 ).json( getError( {
+			message: 'Endpoint expected POST request.', /// TEMP
 	} ) );
 } );
 
@@ -300,12 +294,12 @@ app.post( '/slack/:handle', function( req, res ) {
 	};
 
 	initSlack( req.params.handle, options )
-	.then( ( data ) => {
-		res.end( data );
-	} )
-	.catch( ( err ) => {
-		res.status( 400 ).json( getError( err ) );
-	} );
+		.then( ( data ) => {
+			res.end( data );
+		} )
+		.catch( ( err ) => {
+			res.status( 400 ).json( getError( err ) );
+		} );
 } );
 
 app.listen( PORT, function() {
