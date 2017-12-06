@@ -9,7 +9,7 @@
 - [Documentation](#documentation)
 
 ## About
-Social Proxy allows for 'read only' access to user's data streams on a variety of social media platforms.
+Social Proxy allows for read and/or write access to user's data streams on a variety of social media platforms.
 
 ## Installation
 /// TODO
